@@ -111,5 +111,5 @@ def get_sensor_data():
                 row['bat']
             ]
         return Response(json.dumps(r_dict), status=200, content_type='application/json')
-#app.run(host='192.168.2.117', port=5000)
-app.run(host='0.0.0.0', port=5000)
+app.run(host='192.168.2.117', port=5000)
+#app.run(host='0.0.0.0', port=5000)
