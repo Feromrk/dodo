@@ -110,6 +110,9 @@ def get_sensor_data():
                 row['rpi_state'],
                 row['bat']
             ]
-        return Response(json.dumps(r_dict), status=200, content_type='application/json')
+        
+        resp = Response(json.dumps(r_dict), status=200, content_type='application/json')
+        resp.headers['Access-Control-Allow-Origin'] = '*'
+        return resp
 app.run(host='192.168.2.117', port=5000)
 #app.run(host='0.0.0.0', port=5000)
