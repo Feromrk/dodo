@@ -21,6 +21,7 @@ static class {
 #include <ArduinoOTA.h>
 
 #include <DHT.h>
+#include <thermistor.h>
 
 #include <NTPClient.h>
 #include <WiFiUdp.h>
@@ -31,6 +32,10 @@ static class {
 // ######################### GLOBAL VARIABLES #########################
 int error;
 DHT dht(DHTPIN, DHT22);
+Thermistor *thermistor;
+
+
+#define ESP_PLATFORM
 
 // provide this only once
 // stored in internal flash memory after execution
@@ -67,6 +72,7 @@ void setup() {
   ArduinoOTA.begin();
 
   dht.begin();
+  thermistor = new Thermistor(A0, 3.3, 3.3, 1023, 10000, 10000, 25, 3950, 10, 50);
 
   Serial.println();
 
@@ -96,14 +102,16 @@ void setup() {
 
   // Reading temperature or humidity takes about 250 milliseconds!
   // Sensor readings may also be up to 2 seconds 'old' (its a very slow sensor)
-  float hum = dht.readHumidity();
+  const float hum = dht.readHumidity();
   // Read temperature as Celsius (the default)
-  float temp = dht.readTemperature();
+  const float temp = dht.readTemperature();
 
   // Check if any reads failed and exit early (to try again).
   if (isnan(hum) || isnan(temp)) {
     delayed_restart("Failed to read from DHT sensor!");
   }
+
+  const float temp_ntc = thermistor->readTempC();
 
   //TODO 
   //read RPI state
@@ -113,7 +121,7 @@ void setup() {
 
   String full_url = url 
     + "?temp\_in=" + temp 
-    + "&temp_out=-100"
+    + "&temp_out=" + temp_ntc
     + "&hum_in=" + hum
     + "&rpi_state=-1"
     + "&timestamp=" + timestamp
