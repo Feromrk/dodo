@@ -12,10 +12,10 @@
           contain
           :src="require('./assets/logo.svg')"
           transition="scale-transition"
-          width="50"
+          width="45"
         />
 
-        <div class="text-h3">
+        <div class="text-h4">
           dodo
         </div>
       </div>
@@ -27,25 +27,38 @@
         target="_blank"
         text
       >
-        <span class="mr-2">Source Code</span>
+        <span class="mr-2">Github</span>
         <v-icon>mdi-open-in-new</v-icon>
       </v-btn>
     </v-app-bar>
 
     <v-content>
-      <Chart/>
+
+      <v-container>
+
+        <v-row justify=center>
+            <v-col cols="12" lg="10">
+                <v-card>
+                  <TemperaturePlot/>
+                </v-card>
+            </v-col>
+        </v-row>
+
+
+      </v-container>
+
     </v-content>
   </v-app>
 </template>
 
 <script>
-import Chart from './components/Chart';
+import TemperaturePlot from './components/TemperaturePlot';
 
 export default {
   name: 'App',
 
   components: {
-    Chart,
+    TemperaturePlot,
   },
 
   data: () => ({
