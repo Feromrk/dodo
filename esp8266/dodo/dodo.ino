@@ -28,7 +28,7 @@ static class {
 #define DHTPIN D1     // Digital pin connected to the DHT sensor
 
 // ######################### GLOBAL VARIABLES #########################
-const unsigned int FW_VERSION = 4;
+const unsigned int FW_VERSION = 5;
 
 int error;
 DHT dht(DHTPIN, DHT22);
@@ -46,7 +46,7 @@ WiFiUDP ntpUDP;
 NTPClient timeClient(ntpUDP);
 
 // this function never returns
-void delayed_restart(String msg = "", unsigned long msec = 30*1000) {
+void delayed_restart(String msg = "", unsigned long msec = 60*1000) {
   Serial.println(msg + " Restarting in ms: " + msec);
   unsigned long now = millis();
   while(1) {
