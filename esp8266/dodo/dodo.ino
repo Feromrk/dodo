@@ -16,9 +16,7 @@ static class {
 #include <ESP8266WiFi.h>
 #include <WiFiClient.h>
 
-#include <ESP8266mDNS.h>
-#include <WiFiUdp.h>
-#include <ArduinoOTA.h>
+#include <ESP8266httpUpdate.h>
 
 #include <DHT.h>
 #include <thermistor.h>
@@ -30,19 +28,19 @@ static class {
 #define DHTPIN D1     // Digital pin connected to the DHT sensor
 
 // ######################### GLOBAL VARIABLES #########################
+const unsigned int FW_VERSION = 4;
+
 int error;
 DHT dht(DHTPIN, DHT22);
-Thermistor *thermistor;
-
-
-#define ESP_PLATFORM
+Thermistor thermistor(A0, 3.3, 3.3, 1023, 10000, 10000, 25, 3950, 10, 50);
 
 // provide this only once
 // stored in internal flash memory after execution
 const char* ssid = ""; 
 const char* password = "";
 
-String url = "http://192.168.2.117:5000/update-sensor";
+String url = "http://192.168.2.117:5000/sensor-push";
+String fw_url = "http://192.168.2.117:5000/sensor-firmware";
 
 WiFiUDP ntpUDP;
 NTPClient timeClient(ntpUDP);
@@ -52,7 +50,6 @@ void delayed_restart(String msg = "", unsigned long msec = 30*1000) {
   Serial.println(msg + " Restarting in ms: " + msec);
   unsigned long now = millis();
   while(1) {
-    ArduinoOTA.handle();
 
     if(millis() - now > msec) {
       ESP.restart();
@@ -62,19 +59,31 @@ void delayed_restart(String msg = "", unsigned long msec = 30*1000) {
   }
 }
 
+void firmware_update() {
+  Serial.println(F("Looking for new firmware"));
+  t_httpUpdate_return ret = ESPhttpUpdate.update(fw_url, String(FW_VERSION));
+  switch(ret) {
+      case HTTP_UPDATE_FAILED:
+          Serial.print(F("Firmware update failed: "));
+          Serial.print(ESPhttpUpdate.getLastError());
+          Serial.println(ESPhttpUpdate.getLastErrorString());
+          break;
+      case HTTP_UPDATE_NO_UPDATES:
+          Serial.println(F("Firmware up to date"));
+          break;
+      case HTTP_UPDATE_OK:
+          Serial.println(F("Firmware Update complete")); // may not be called since we reboot the ESP
+          break;
+  }
+}
+
 void setup() {
-  Serial.begin(9600);
+  Serial.begin(115200);
   delay(10);
 
   Serial.println();
-  Serial.println(F("Starting up"));
-
-  ArduinoOTA.begin();
-
-  dht.begin();
-  thermistor = new Thermistor(A0, 3.3, 3.3, 1023, 10000, 10000, 25, 3950, 10, 50);
-
-  Serial.println();
+  Serial.print(F("Firmware version: "));
+  Serial.println(FW_VERSION);
 
   WiFi.mode(WIFI_STA);
   if(strlen(ssid) > 0 && strlen(password) > 0 ) {
@@ -93,6 +102,10 @@ void setup() {
   Serial.println(F("WiFi connected"));
   Serial.print(F("IP: ")); Serial.println(WiFi.localIP());
 
+  firmware_update();
+
+  dht.begin();
+
   timeClient.begin();
   error = !timeClient.update();
   unsigned long timestamp = timeClient.getEpochTime();
@@ -102,30 +115,34 @@ void setup() {
 
   // Reading temperature or humidity takes about 250 milliseconds!
   // Sensor readings may also be up to 2 seconds 'old' (its a very slow sensor)
-  const float hum = dht.readHumidity();
+  //const float hum_dht = dht.readHumidity();
   // Read temperature as Celsius (the default)
-  const float temp = dht.readTemperature();
+  const float temp_dht = dht.readTemperature();
 
   // Check if any reads failed and exit early (to try again).
-  if (isnan(hum) || isnan(temp)) {
+  //if (isnan(hum_dht) || isnan(temp_dht)) {
+  if(isnan(temp_dht)) {
     delayed_restart("Failed to read from DHT sensor!");
   }
 
-  const float temp_ntc = thermistor->readTempC();
+  const float temp_ntc = thermistor.readTempC();
 
   //TODO 
   //read RPI state
+
+  //TODO
+  //read battery state
 
   //GET REQUEST
   HTTPClient http;
 
   String full_url = url 
-    + "?temp\_in=" + temp 
-    + "&temp_out=" + temp_ntc
-    + "&hum_in=" + hum
+    + "?temp\_in=" + temp_ntc 
+    + "&temp_out=" + temp_dht
     + "&rpi_state=-1"
     + "&timestamp=" + timestamp
-    + "&bat=-1";
+    + "&bat=-1"
+    + "&fw_version=" + FW_VERSION;
   Serial.print("GET request to: "); Serial.println(full_url);
   http.begin(full_url.c_str());
   int http_response_code = http.GET();
@@ -138,7 +155,7 @@ void setup() {
   http.end();
 
   //TODO 
-  //Aufgaben aus payload abarbeiten
+  //dispatch tasks from backend response
   
   delayed_restart("All work done", 5*60*1000); //5min
 }
