@@ -28,7 +28,7 @@ static class {
 #define DHTPIN D1     // Digital pin connected to the DHT sensor
 
 // ######################### GLOBAL VARIABLES #########################
-const unsigned int FW_VERSION = 5;
+const unsigned int FW_VERSION = 6;
 
 int error;
 DHT dht(DHTPIN, DHT22);
@@ -45,18 +45,24 @@ String fw_url = "http://192.168.2.117:5000/sensor-firmware";
 WiFiUDP ntpUDP;
 NTPClient timeClient(ntpUDP);
 
-// this function never returns
+// busy waiting
+//void delayed_restart(String msg = "", unsigned long msec = 60*1000) {
+//  Serial.println(msg + " Restarting in ms: " + msec);
+//  unsigned long now = millis();
+//  while(1) {
+//
+//    if(millis() - now > msec) {
+//      ESP.restart();
+//    }
+//
+//    yield();
+//  }
+//}
+
+// deep sleep
 void delayed_restart(String msg = "", unsigned long msec = 60*1000) {
-  Serial.println(msg + " Restarting in ms: " + msec);
-  unsigned long now = millis();
-  while(1) {
-
-    if(millis() - now > msec) {
-      ESP.restart();
-    }
-
-    yield();
-  }
+  Serial.println(msg + " Going to deep sleep for ms: " + msec);
+  ESP.deepSleep(msec*1000, WAKE_RF_DEFAULT);
 }
 
 void firmware_update() {
