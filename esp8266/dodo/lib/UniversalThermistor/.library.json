@@ -1,0 +1,47 @@
+{
+    "name": "universal-thermistor", 
+    "repository": {
+        "url": "https://github.com/kegnet/universal-thermistor.git", 
+        "type": "git"
+    }, 
+    "platforms": [
+        "atmelavr", 
+        "atmelmegaavr", 
+        "atmelsam", 
+        "espressif32", 
+        "espressif8266", 
+        "gd32v", 
+        "infineonxmc", 
+        "intel_arc32", 
+        "kendryte210", 
+        "microchippic32", 
+        "nordicnrf51", 
+        "nordicnrf52", 
+        "ststm32", 
+        "ststm8", 
+        "teensy", 
+        "timsp430"
+    ], 
+    "frameworks": [
+        "arduino"
+    ], 
+    "version": "4.1.1", 
+    "authors": [
+        {
+            "maintainer": true, 
+            "name": "Paul Cowan", 
+            "url": "http://www.monospacesoftware.com", 
+            "email": "paul@monospacesoftware.com"
+        }
+    ], 
+    "keywords": [
+        "steinhart", 
+        "temperature", 
+        "steinhart\u2013hart", 
+        "thermistor", 
+        "ntc", 
+        "esp8266"
+    ], 
+    "id": 3085, 
+    "description": "A fully configurable NTC thermistor library."
+}

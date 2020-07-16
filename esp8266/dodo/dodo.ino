@@ -25,13 +25,14 @@ static class {
 #include <WiFiUdp.h>
 
 // ######################### PIN DEFINITIONS #########################
-#define DHTPIN D1     // Digital pin connected to the DHT sensor
+#define DHT_PIN D8     // Digital pin connected to the DHT sensor
+#define NTC_SELECT_PIN D6
 
 // ######################### GLOBAL VARIABLES #########################
-const unsigned int FW_VERSION = 6;
+const unsigned int FW_VERSION = 8;
 
 int error;
-DHT dht(DHTPIN, DHT22);
+DHT dht(DHT_PIN, DHT22);
 Thermistor thermistor(A0, 3.3, 3.3, 1023, 10000, 10000, 25, 3950, 10, 50);
 
 // provide this only once
@@ -84,6 +85,9 @@ void firmware_update() {
 }
 
 void setup() {
+  pinMode(NTC_SELECT_PIN, OUTPUT);
+  digitalWrite(NTC_SELECT_PIN, LOW);
+  
   Serial.begin(115200);
   delay(10);
 
@@ -131,6 +135,8 @@ void setup() {
     delayed_restart("Failed to read from DHT sensor!");
   }
 
+  digitalWrite(NTC_SELECT_PIN, HIGH);
+  delay(50);
   const float temp_ntc = thermistor.readTempC();
 
   //TODO 
