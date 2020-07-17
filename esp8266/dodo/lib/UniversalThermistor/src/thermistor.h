@@ -41,6 +41,7 @@ class Thermistor {
     const double _bCoef;
     const int _samples;
     const int _sampleDelay;
+    const int _correction;
 
   public:
 
@@ -56,7 +57,7 @@ class Thermistor {
     * arg 9: samples: Number of analog samples to average (for smoothing)
     * arg 10: sampleDelay: Milliseconds between samples (for smoothing)
     */
-    Thermistor(int pin, double vcc, double analogReference, int adcMax, int seriesResistor, int thermistorNominal, int temperatureNominal, int bCoef, int samples, int sampleDelay);
+    Thermistor(int pin, double vcc, double analogReference, int adcMax, int seriesResistor, int thermistorNominal, int temperatureNominal, int bCoef, int samples, int sampleDelay, int correction);
 
     // Smoothed ADC value
     double readADC() const;

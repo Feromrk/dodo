@@ -32,7 +32,9 @@ Thermistor::Thermistor(
 	int temperatureNominal,
 	int bCoef,
 	int samples,
-	int sampleDelay):
+	int sampleDelay,
+    int correction
+                      ):
 		_pin(pin),
 		_vcc(vcc),
 		_analogReference(analogReference),
@@ -42,7 +44,8 @@ Thermistor::Thermistor(
 		_temperatureNominal(temperatureNominal),
 		_bCoef(bCoef),
 		_samples(samples),
-		_sampleDelay(sampleDelay) {
+		_sampleDelay(sampleDelay),
+		_correction(correction) {
   pinMode(_pin, INPUT);
 }
 
@@ -53,7 +56,7 @@ double Thermistor::readADC() const {
 		delay(_sampleDelay);
 	}
 	sum += analogRead(_pin);
-	return (1. * sum) / _samples;
+	return ((1. * sum) / _samples) + _correction;
 }
 
 double Thermistor::readTempK() const {
