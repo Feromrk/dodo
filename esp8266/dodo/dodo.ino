@@ -25,15 +25,23 @@ static class {
 #include <WiFiUdp.h>
 
 // ######################### PIN DEFINITIONS #########################
-#define DHT_PIN D8     // Digital pin connected to the DHT sensor
-#define NTC_SELECT_PIN D6
+#define DHT_PIN D7     // Digital pin connected to the DHT sensor
+
+//never pull HIGH this and BAT_GATE_PIN at the same time
+#define SENSPOR_POWER_PIN D6
+
+#define BAT_GATE_PIN D5
+
+#define RPI_HALTED_PIN D3
+#define RPI_SHUTDOWN_PIN D2
+#define RPI_POWER_PIN D1
 
 // ######################### GLOBAL VARIABLES #########################
 const unsigned int FW_VERSION = 8;
 
 int error;
 DHT dht(DHT_PIN, DHT22);
-Thermistor thermistor(A0, 3.3, 3.3, 1023, 10000, 10000, 25, 3950, 10, 50);
+Thermistor thermistor(A0, 3.3, 3.3, 1023, 10000, 10000, 25, 3950, 10, 50, -20);
 
 // provide this only once
 // stored in internal flash memory after execution
@@ -60,6 +68,20 @@ NTPClient timeClient(ntpUDP);
 //  }
 //}
 
+int bat_charge() {
+  //turn off sensors
+  //now it is allowed to read battery voltage
+  digitalWrite(SENSPOR_POWER_PIN, LOW);
+  delay(100);
+  digitalWrite(BAT_GATE_PIN, HIGH);
+  delay(100);
+  
+  int bat_v = analogRead(A0);
+  digitalWrite(BAT_GATE_PIN, LOW);
+
+  return bat_v;
+}
+
 // deep sleep
 void delayed_restart(String msg = "", unsigned long msec = 60*1000) {
   Serial.println(msg + " Going to deep sleep for ms: " + msec);
@@ -85,8 +107,23 @@ void firmware_update() {
 }
 
 void setup() {
-  pinMode(NTC_SELECT_PIN, OUTPUT);
-  digitalWrite(NTC_SELECT_PIN, LOW);
+
+  //turn on sensors, since they have 1 second wake up time
+  pinMode(SENSPOR_POWER_PIN, OUTPUT);
+  digitalWrite(SENSPOR_POWER_PIN, HIGH);
+  unsigned long sensor_startup_time = millis();  
+
+  pinMode(BAT_GATE_PIN, OUTPUT);
+  digitalWrite(BAT_GATE_PIN, LOW);
+
+  pinMode(RPI_HALTED_PIN, INPUT);
+
+  pinMode(RPI_SHUTDOWN_PIN, OUTPUT);
+  digitalWrite(RPI_SHUTDOWN_PIN, HIGH);
+
+  pinMode(RPI_POWER_PIN, OUTPUT);
+  digitalWrite(RPI_POWER_PIN, LOW);
+
   
   Serial.begin(115200);
   delay(10);
@@ -123,6 +160,13 @@ void setup() {
     delayed_restart("Failed to ntp sync!");
   }
 
+  //wait here if 1 second has not passed yet
+  while(millis() - sensor_startup_time < 1000) {
+    delay(100);
+  }
+
+  const float temp_ntc = thermistor.readTempC();
+
   // Reading temperature or humidity takes about 250 milliseconds!
   // Sensor readings may also be up to 2 seconds 'old' (its a very slow sensor)
   //const float hum_dht = dht.readHumidity();
@@ -135,15 +179,18 @@ void setup() {
     delayed_restart("Failed to read from DHT sensor!");
   }
 
-  digitalWrite(NTC_SELECT_PIN, HIGH);
-  delay(50);
-  const float temp_ntc = thermistor.readTempC();
+  //turn off sensors
+  //now it is possible to read battery voltage
+  digitalWrite(SENSPOR_POWER_PIN, LOW);
 
   //TODO 
   //read RPI state
 
   //TODO
   //read battery state
+  int bat_v = bat_charge();
+  Serial.print("battery charge: ");
+  Serial.println(bat_v);
 
   //GET REQUEST
   HTTPClient http;
@@ -153,7 +200,7 @@ void setup() {
     + "&temp_out=" + temp_dht
     + "&rpi_state=-1"
     + "&timestamp=" + timestamp
-    + "&bat=-1"
+    + "&bat=" + bat_v
     + "&fw_version=" + FW_VERSION;
   Serial.print("GET request to: "); Serial.println(full_url);
   http.begin(full_url.c_str());
@@ -168,6 +215,19 @@ void setup() {
 
   //TODO 
   //dispatch tasks from backend response
+
+//  Serial.println("turning on rpi");
+//  digitalWrite(RPI_POWER_PIN, HIGH);
+//  delay(400000);
+//
+//  Serial.println("requesting shutdown");
+//  digitalWrite(RPI_SHUTDOWN_PIN, LOW); //request shutdown
+//
+//  Serial.println("waiting for RPI to turn off");
+//  while(digitalRead(RPI_HALTED_PIN) == HIGH) {
+//    Serial.print(".");
+//    delay(1000);
+//  }
   
   delayed_restart("All work done", 5*60*1000); //5min
 }
