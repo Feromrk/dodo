@@ -24,7 +24,45 @@ db_fieldnames = [
     'fw_version'
 ]
 firmware_folder = '/var/opt/dodo/sensor_firmware'
+task_queue = []
 
+
+# ---------------------------
+# ENDPOINTS FOR THE ESP8266
+# ---------------------------
+
+
+# esp uses this endpoint for the OTA firmware update
+@app.route('/sensor-firmware', methods=['GET'])
+def get_sensor_firmware():
+
+    print(request.headers)
+
+    user_agent = request.headers.get('User-Agent')
+    if not user_agent == 'ESP8266-http-Update':
+        print('Wrong user agent!', user_agent)
+        return Response('Only for ESP8266 updater!',status=403, content_type='text/plain')
+
+    firmware_filenames = glob.glob(f"{firmware_folder}/*.bin")
+
+    if firmware_filenames:
+        latest_firmware_filename = natsort.natsorted(firmware_filenames, reverse=True)[0]
+        latest_firmware_version = os.path.basename(latest_firmware_filename).split('.')[0]
+
+    remote_firmware_version = request.headers.get('X-Esp8266-Version')
+
+    try:
+        remote_firmware_version = int(request.headers['X-Esp8266-Version'])
+    except (KeyError, ValueError) as e:
+        print(e)
+        return Response('X-Esp8266-Version header missing', status=403, content_type='text/plain')
+
+    if int(latest_firmware_version) > remote_firmware_version:
+        return send_file(latest_firmware_filename, as_attachment=True)
+    
+    return Response(status=304)
+
+# esp uses this endpoint to push new sensor data; also returns queued tasks
 @app.route('/sensor-push', methods=['GET'])
 def get_sensor_push():
     request.parameter_storage_class = dict
@@ -85,9 +123,15 @@ def get_sensor_push():
 
         writer.writerow(args)
 
-    return Response('{"tasks":[]}', status=200, content_type='application/json')
+    r = Response(json.dumps(task_queue), status=200, content_type='application/json')
+    task_queue.clear()
+    return r
 
+# ---------------------------
+# ENDPOINTS FOR THE FRONTEND
+# ---------------------------
 
+# get collected sensor data
 @app.route('/sensor-data', methods=['GET'])
 def get_sensor_data():
 
@@ -114,35 +158,67 @@ def get_sensor_data():
     except FileNotFoundError:
         return Response("No database", status=500)
 
-@app.route('/sensor-firmware', methods=['GET'])
-def get_sensor_firmware():
 
-    print(request.headers)
 
-    user_agent = request.headers.get('User-Agent')
-    if not user_agent == 'ESP8266-http-Update':
-        print('Wrong user agent!', user_agent)
-        return Response('Only for ESP8266 updater!',status=403, content_type='text/plain')
+# add a new task that will be dispatched by the esp
+@app.route('/sensor-task', methods=['POST'])
+def post_sensor_task():
+    # json format: {'task':1, 'params':{'timeout': 5}}
+    # 'id' int
+    # 'params' object with param name and value
+    # calling this again with the same id overwrites the params and moves the task at the end of the queue
 
-    firmware_filenames = glob.glob(f"{firmware_folder}/*.bin")
+    if not request.is_json:
+        return Response(status=415)
 
-    if firmware_filenames:
-        latest_firmware_filename = natsort.natsorted(firmware_filenames, reverse=True)[0]
-        latest_firmware_version = os.path.basename(latest_firmware_filename).split('.')[0]
+    schema = {
+        'id': {
+            'type': 'integer',
+            'required': True,
+            'coerce': int
+        },
+        'params': {
+            'type': 'dict',
+            'keysrules': {
+                'type': 'string'
+            },
+            'valuesrules': {
+                'type': ['boolean', 'number', 'string']
+            }
+        },
+    }
 
-    remote_firmware_version = request.headers.get('X-Esp8266-Version')
+    v = cerberus.Validator(schema, allow_unknown=True)
+    if not v.validate(request.get_json()):
+        return Response(json.dumps(v.errors), status=400, content_type='application/json')
 
-    try:
-        remote_firmware_version = int(request.headers['X-Esp8266-Version'])
-    except (KeyError, ValueError) as e:
-        print(e)
-        return Response('X-Esp8266-Version header missing', status=403, content_type='text/plain')
+    request_body = v.document
+    print("Request body:", request_body)
 
-    if int(latest_firmware_version) > remote_firmware_version:
-        return send_file(latest_firmware_filename, as_attachment=True)
+    #task_queue.clear()
+
+    new_task = True
+
+    if len(task_queue):
+        for i, task in enumerate(task_queue):
+            #if task in queue, update params
+            if task['id'] == request_body['id']:
+                print('updating task')
+                task['params'] = request_body['params']
+                new_task = False
+                #move task to the end of the list
+                task_queue.append(task_queue.pop(i))
+                break
+
+    if new_task:
+        print('adding task')
+        task_queue.append(request_body)
     
-    return Response(status=304)
+    print("New task queue:", task_queue)
     
+
+    return Response(json.dumps(task_queue), status=200, content_type='application/json')
+
 
 app.run(host='192.168.2.117', port=5000)
 #app.run(host='0.0.0.0', port=5000)
