@@ -15,6 +15,14 @@ app = flask.Flask(__name__)
 app.config['DEBUG'] = True
 
 db_filename = 'db.csv'
+db_fieldnames = [
+    'timestamp', 
+    'temp_in',
+    'temp_out',
+    'rpi_state',
+    'bat',
+    'fw_version'
+]
 firmware_folder = '/var/opt/dodo/sensor_firmware'
 
 @app.route('/sensor-push', methods=['GET'])
@@ -70,15 +78,7 @@ def get_sensor_push():
     args = v.document
 
     with open(db_filename, 'a') as f:
-        fieldnames = [
-            'timestamp', 
-            'temp_in',
-            'temp_out',
-            'rpi_state',
-            'bat',
-            'fw_version'
-        ]
-        writer = csv.DictWriter(f, fieldnames=fieldnames, extrasaction='ignore')
+        writer = csv.DictWriter(f, fieldnames=db_fieldnames, extrasaction='ignore')
 
         if f.tell() == 0:
             writer.writeheader()
@@ -91,32 +91,28 @@ def get_sensor_push():
 @app.route('/sensor-data', methods=['GET'])
 def get_sensor_data():
 
-    with open(db_filename) as f:
-        fieldnames = [
-            'timestamp', 
-            'temp_in',
-            'temp_out',
-            'hum_in',
-            'rpi_state',
-            'bat'
-        ]
-        reader = csv.DictReader(f, fieldnames=fieldnames)
-        next(reader) #skip first row with fieldnames
+    try:
+        with open(db_filename) as f:
+            reader = csv.DictReader(f, fieldnames=db_fieldnames)
+            next(reader) #skip first row with fieldnames
 
-        r_dict = {}
-        for row in reader:
-            r_dict[row['timestamp']] = [
-                row['temp_in'],
-                row['temp_out'],
-                row['hum_in'],
-                row['rpi_state'],
-                row['bat']
-            ]
-        
-        resp = Response(json.dumps(r_dict), status=200, content_type='application/json')
-        resp.headers['Access-Control-Allow-Origin'] = '*'
-        return resp
+            r_dict = {}
+            for row in reader:
+                if int(row['fw_version']) > 0:
+                    r_dict[row['timestamp']] = [
+                        row['temp_in'],
+                        row['temp_out'],
+                        row['rpi_state'],
+                        row['bat'],
+                        row['fw_version'],
+                    ]
+            
+            resp = Response(json.dumps(r_dict), status=200, content_type='application/json')
+            resp.headers['Access-Control-Allow-Origin'] = '*'
+            return resp
 
+    except FileNotFoundError:
+        return Response("No database", status=500)
 
 @app.route('/sensor-firmware', methods=['GET'])
 def get_sensor_firmware():
