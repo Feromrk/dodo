@@ -28,7 +28,7 @@ static class {
 #define DHT_PIN D7     // Digital pin connected to the DHT sensor
 
 //never pull HIGH this and BAT_GATE_PIN at the same time
-#define SENSPOR_POWER_PIN D6
+#define SENSOR_POWER_PIN D6
 
 #define BAT_GATE_PIN D5
 
@@ -41,7 +41,7 @@ const unsigned int FW_VERSION = 8;
 
 int error;
 DHT dht(DHT_PIN, DHT22);
-Thermistor thermistor(A0, 3.3, 3.3, 1023, 10000, 10000, 25, 3950, 10, 50, -20);
+Thermistor thermistor(A0, 3.3, 3.3, 1023, 10000, 10000, 25, 3950, 10, 50, 55);
 
 // provide this only once
 // stored in internal flash memory after execution
@@ -71,7 +71,7 @@ NTPClient timeClient(ntpUDP);
 int bat_charge() {
   //turn off sensors
   //now it is allowed to read battery voltage
-  digitalWrite(SENSPOR_POWER_PIN, LOW);
+  digitalWrite(SENSOR_POWER_PIN, LOW);
   delay(100);
   digitalWrite(BAT_GATE_PIN, HIGH);
   delay(100);
@@ -109,8 +109,8 @@ void firmware_update() {
 void setup() {
 
   //turn on sensors, since they have 1 second wake up time
-  pinMode(SENSPOR_POWER_PIN, OUTPUT);
-  digitalWrite(SENSPOR_POWER_PIN, HIGH);
+  pinMode(SENSOR_POWER_PIN, OUTPUT);
+  digitalWrite(SENSOR_POWER_PIN, HIGH);
   unsigned long sensor_startup_time = millis();  
 
   pinMode(BAT_GATE_PIN, OUTPUT);
@@ -181,7 +181,7 @@ void setup() {
 
   //turn off sensors
   //now it is possible to read battery voltage
-  digitalWrite(SENSPOR_POWER_PIN, LOW);
+  digitalWrite(SENSOR_POWER_PIN, LOW);
 
   //TODO 
   //read RPI state
