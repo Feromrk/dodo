@@ -24,6 +24,7 @@ static class {
 #include <NTPClient.h>
 #include <WiFiUdp.h>
 
+#include <ArduinoJson.h>
 // ######################### PIN DEFINITIONS #########################
 #define DHT_PIN D7     // Digital pin connected to the DHT sensor
 
@@ -32,12 +33,16 @@ static class {
 
 #define BAT_GATE_PIN D5
 
-#define RPI_HALTED_PIN D3
+#define RPI_HALTED_PIN D3 //TODO: needs pull down resistor
 #define RPI_SHUTDOWN_PIN D2
-#define RPI_POWER_PIN D1
+#define RPI_POWER_PIN D1 //TODO: needs pull up resistor
 
 // ######################### GLOBAL VARIABLES #########################
-const unsigned int FW_VERSION = 8;
+const unsigned int FW_VERSION = 9;
+
+#define DEFAULT_SLEEP_MS (5*60*1000) //5min
+#define ERROR_SLEEP_MS (60*1000) //1min
+#define ALLOWED_RPI_UPTIME_MS (DEFAULT_SLEEP_MS*2)
 
 int error;
 DHT dht(DHT_PIN, DHT22);
@@ -53,6 +58,11 @@ String fw_url = "http://192.168.2.117:5000/sensor-firmware";
 
 WiFiUDP ntpUDP;
 NTPClient timeClient(ntpUDP);
+
+//must be 4 byte aligned
+struct {
+  uint32_t rpi_boot_time;
+} rtcData;
 
 // busy waiting
 //void delayed_restart(String msg = "", unsigned long msec = 60*1000) {
@@ -83,7 +93,7 @@ int bat_charge() {
 }
 
 // deep sleep
-void delayed_restart(String msg = "", unsigned long msec = 60*1000) {
+void delayed_restart(String msg = "", unsigned long msec = ERROR_SLEEP_MS) {
   Serial.println(msg + " Going to deep sleep for ms: " + msec);
   ESP.deepSleep(msec*1000, WAKE_RF_DEFAULT);
 }
@@ -106,6 +116,101 @@ void firmware_update() {
   }
 }
 
+void shutdown_rpi(bool graceful = true, unsigned int timeout_s = 40) {
+
+  Serial.println(F("requesting rpi shutdown"));
+  digitalWrite(RPI_SHUTDOWN_PIN, LOW); //request shutdown
+
+  if(graceful) {
+      Serial.println(F("waiting for rpi to shut down gracefully"));
+      unsigned long request_shutdown_time = millis();
+      bool timeout_reached = false;
+      while(digitalRead(RPI_HALTED_PIN) == HIGH && !timeout_reached) {
+        Serial.print(".");
+        timeout_reached = (millis()-request_shutdown_time)/1000 < timeout_s ? false : true;
+        delay(500);
+      }
+
+      if(timeout_reached) {
+        Serial.println(F("timeout reached, forcing shutdown"));
+      } else {
+        Serial.println(F("success"));
+      }
+  }
+
+  Serial.println(F("turning off rpi power"));
+  digitalWrite(RPI_POWER_PIN, LOW); //turn off rpi power
+  digitalWrite(RPI_SHUTDOWN_PIN, HIGH); //reset request shutdown
+
+  rtcData.rpi_boot_time = 0;
+}
+
+void boot_rpi(bool await = false, unsigned int timeout_s = 40) {
+
+  Serial.println(F("turning on rpi power"));
+  digitalWrite(RPI_SHUTDOWN_PIN, HIGH); //reset request shutdown
+  digitalWrite(RPI_POWER_PIN, HIGH);
+
+  rtcData.rpi_boot_time = millis();
+
+  if(await) {
+      Serial.println(F("waiting for rpi to leave halted state"));
+      unsigned long request_boot_time = millis();
+      bool timeout_reached = false;
+      while(digitalRead(RPI_HALTED_PIN) == LOW && !timeout_reached) {
+        Serial.print(".");
+        timeout_reached = (millis()-request_boot_time)/1000 < timeout_s ? false : true;
+        delay(500);
+      }
+
+      if(timeout_reached) {
+        Serial.println(F("timeout reached, could not start rpi"));
+      } else {
+        Serial.println(F("success"));
+      }
+  }
+}
+
+void dispatch_tasks(const JsonDocument &json_doc) {
+    auto tasks = json_doc.as<JsonArray>();
+    for(const auto& task : tasks) {
+        switch(task["id"].as<unsigned int>()) {
+            //turn off rpi gracefully
+            //params: delay_s
+            case 1:
+                Serial.println("task id 1");
+                if(task["params"].isNull() || 
+                   task["params"]["delay_s"].isNull()) {
+                    
+                    shutdown_rpi();
+                } else {
+                    unsigned int delay_ms = task["params"]["delay_s"].as<unsigned int>()*1000;
+                    Serial.print("waiting seconds: "); Serial.println(delay_ms/1000);
+                    delay(delay_ms);
+                    shutdown_rpi();
+                }
+                break;
+    
+            //turn on rpi and wait until it left halted state
+            //rpi will be turned off automatically after ALLOWED_RPI_UPTIME_MS
+            //params: delay_s
+            case 2:
+                Serial.println("task id 2");
+                if(task["params"].isNull() || 
+                   task["params"]["delay_s"].isNull()) {
+                    
+                    boot_rpi();
+                } else {
+                    unsigned int delay_ms = task["params"]["delay_s"].as<unsigned int>()*1000;
+                    Serial.print("waiting seconds: "); Serial.println(delay_ms/1000);
+                    delay(delay_ms);
+                    boot_rpi();
+                }
+                break;
+        }
+    }
+}
+
 void setup() {
 
   //turn on sensors, since they have 1 second wake up time
@@ -122,12 +227,33 @@ void setup() {
   digitalWrite(RPI_SHUTDOWN_PIN, HIGH);
 
   pinMode(RPI_POWER_PIN, OUTPUT);
-  digitalWrite(RPI_POWER_PIN, LOW);
-
   
   Serial.begin(115200);
   delay(10);
 
+  //check whether fresh boot or awake from deep sleep
+  rst_info *reset_info;
+  reset_info = ESP.getResetInfoPtr();
+  if(reset_info->reason == REASON_DEEP_SLEEP_AWAKE) {
+    ESP.rtcUserMemoryRead(0, (uint32_t*) &rtcData, sizeof(rtcData));
+
+    //if rpi was off, restore off state (pull up resistor)
+    if(rtcData.rpi_boot_time == 0) {
+        digitalWrite(RPI_POWER_PIN, LOW);
+    //if it was on, check if uptime is alright
+    } else if((millis() - rtcData.rpi_boot_time) > ALLOWED_RPI_UPTIME_MS) {
+        shutdown_rpi();
+    // if it was on and uptime is ok, leave it on
+    } else {
+        digitalWrite(RPI_POWER_PIN, HIGH);
+    }
+  } else {
+    memset(&rtcData, 0, sizeof(rtcData));
+
+    //rpi power is turned off on fresh boot
+    digitalWrite(RPI_POWER_PIN, LOW);
+  }
+  
   Serial.println();
   Serial.print(F("Firmware version: "));
   Serial.println(FW_VERSION);
@@ -183,10 +309,9 @@ void setup() {
   //now it is possible to read battery voltage
   digitalWrite(SENSOR_POWER_PIN, LOW);
 
-  //TODO 
   //read RPI state
+  bool rpi_on = digitalRead(RPI_HALTED_PIN);
 
-  //TODO
   //read battery state
   int bat_v = bat_charge();
   Serial.print("battery charge: ");
@@ -198,7 +323,7 @@ void setup() {
   String full_url = url 
     + "?temp\_in=" + temp_ntc 
     + "&temp_out=" + temp_dht
-    + "&rpi_state=-1"
+    + "&rpi_state=" + rpi_on
     + "&timestamp=" + timestamp
     + "&bat=" + bat_v
     + "&fw_version=" + FW_VERSION;
@@ -207,28 +332,29 @@ void setup() {
   int http_response_code = http.GET();
 
   Serial.print("HTTP response code: "); Serial.println(http_response_code);
+  
+  DynamicJsonDocument json_doc(1024);
+  DeserializationError json_error;
+  
   if(http_response_code == 200) {
-      String payload = http.getString();
-      Serial.println(payload);
+      json_error = deserializeJson(json_doc, http.getString());
+  } else {
+    delayed_restart("Backend error", DEFAULT_SLEEP_MS);
   }
+  
   http.end();
 
-  //TODO 
-  //dispatch tasks from backend response
+  if (json_error) {
+    delayed_restart(
+        String("deserializeJson() failed: ") + json_error.c_str(),
+        DEFAULT_SLEEP_MS
+    );
+  }
 
-//  Serial.println("turning on rpi");
-//  digitalWrite(RPI_POWER_PIN, HIGH);
-//  delay(400000);
-//
-//  Serial.println("requesting shutdown");
-//  digitalWrite(RPI_SHUTDOWN_PIN, LOW); //request shutdown
-//
-//  Serial.println("waiting for RPI to turn off");
-//  while(digitalRead(RPI_HALTED_PIN) == HIGH) {
-//    Serial.print(".");
-//    delay(1000);
-//  }
-  
+  //DISPATCH TASKS FROM BACKEND
+  dispatch_tasks(json_doc);
+
+  ESP.rtcUserMemoryWrite(0, (uint32_t*) &rtcData, sizeof(rtcData));
   delayed_restart("All work done", 5*60*1000); //5min
 }
 
