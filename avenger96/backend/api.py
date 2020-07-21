@@ -36,7 +36,7 @@ task_queue = []
 @app.route('/sensor-firmware', methods=['GET'])
 def get_sensor_firmware():
 
-    print(request.headers)
+    #print(request.headers)
 
     user_agent = request.headers.get('User-Agent')
     if not user_agent == 'ESP8266-http-Update':
@@ -163,7 +163,7 @@ def get_sensor_data():
 # add a new task that will be dispatched by the esp
 @app.route('/sensor-task', methods=['POST'])
 def post_sensor_task():
-    # json format: {'task':1, 'params':{'timeout': 5}}
+    # json format: {'id':1, 'params':{'timeout': 5}}
     # 'id' int
     # 'params' object with param name and value
     # calling this again with the same id overwrites the params and moves the task at the end of the queue
@@ -204,7 +204,12 @@ def post_sensor_task():
             #if task in queue, update params
             if task['id'] == request_body['id']:
                 print('updating task')
-                task['params'] = request_body['params']
+                params = request_body.get('params')
+                if params:
+                    task['params'] = params
+                else:
+                    task.remove('params')
+                    task_queue[i] = task
                 new_task = False
                 #move task to the end of the list
                 task_queue.append(task_queue.pop(i))
