@@ -208,7 +208,7 @@ def post_sensor_task():
                 if params:
                     task['params'] = params
                 else:
-                    task.remove('params')
+                    task.pop('params', None)
                     task_queue[i] = task
                 new_task = False
                 #move task to the end of the list
