@@ -10,6 +10,7 @@ import cerberus
 import glob
 import natsort
 
+import requests
 
 app = flask.Flask(__name__)
 app.config['DEBUG'] = True
@@ -223,6 +224,19 @@ def post_sensor_task():
     
 
     return Response(json.dumps(task_queue), status=200, content_type='application/json')
+
+@app.route('/camera-stream', methods=['GET'])
+def get_camera_stream():
+
+    try:
+        r = requests.get('http://192.168.2.106:8081/', stream=True, timeout=(3.05, 27))
+    except requests.exceptions.ConnectionError:
+        return Response(status=424)
+    
+    return Response(r.iter_content(chunk_size=10*1024),
+                    content_type=r.headers['Content-Type'])
+
+
 
 
 app.run(host='192.168.2.117', port=5000)
