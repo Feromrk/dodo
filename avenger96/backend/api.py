@@ -4,6 +4,7 @@ import os
 
 import flask
 from flask import request, Response, send_file
+from flask_cors import CORS
 
 import cerberus
 
@@ -14,6 +15,7 @@ import requests
 
 app = flask.Flask(__name__)
 app.config['DEBUG'] = True
+CORS(app) #fix this in production
 
 db_filename = 'db.csv'
 db_fieldnames = [
@@ -142,7 +144,7 @@ def get_sensor_data():
             next(reader) #skip first row with fieldnames
 
             r_dict = {}
-            for row in reader:
+            for i, row in enumerate(reversed(list(reader))):
                 if int(row['fw_version']) > 0:
                     r_dict[row['timestamp']] = [
                         row['temp_in'],
@@ -151,6 +153,8 @@ def get_sensor_data():
                         row['bat'],
                         row['fw_version'],
                     ]
+                if i > 800: 
+                    break
             
             resp = Response(json.dumps(r_dict), status=200, content_type='application/json')
             resp.headers['Access-Control-Allow-Origin'] = '*'
@@ -222,8 +226,9 @@ def post_sensor_task():
     
     print("New task queue:", task_queue)
     
-
-    return Response(json.dumps(task_queue), status=200, content_type='application/json')
+    resp = Response(json.dumps(task_queue), status=200, content_type='application/json')
+    resp.headers['Access-Control-Allow-Origin'] = '*'
+    return resp
 
 @app.route('/camera-stream', methods=['GET'])
 def get_camera_stream():
