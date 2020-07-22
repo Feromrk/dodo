@@ -44,6 +44,14 @@
             </v-col>
         </v-row>
 
+        <v-row justify=center>
+          <v-col cols="12" lg="10">
+              <v-card>
+                <CameraStream/>
+              </v-card>
+          </v-col>
+        </v-row>
+
 
       </v-container>
 
@@ -53,12 +61,14 @@
 
 <script>
 import TemperaturePlot from './components/TemperaturePlot';
+import CameraStream from './components/CameraStream'
 
 export default {
   name: 'App',
 
   components: {
     TemperaturePlot,
+    CameraStream
   },
 
   data: () => ({

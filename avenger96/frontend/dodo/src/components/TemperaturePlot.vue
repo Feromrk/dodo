@@ -1,9 +1,14 @@
 <template>
+        
+    
+        
     <div id="wrapper">
+        <center><h1>Temperatures</h1></center>
+
         <div id="temperature_plot-main">
             <apexchart type="line" height="230" :options="chartOptions" :series="series"></apexchart>
         </div>
-    <div id="temperature_plot-footer">
+        <div id="temperature_plot-footer">
             <apexchart type="area" height="130" :options="chartOptionsLine" :series="seriesLine"></apexchart>
         </div>
     </div>
@@ -28,11 +33,11 @@
                 }                
                 this.series = [
                     {
-                        name: "Innen",
+                        name: "Outside",
                         data: temps_in
                     },
                     {
-                        name: "Außen",
+                        name: "Inside",
                         data: temps_out
                     }
                 ]
@@ -65,14 +70,14 @@
                 data: []
             }],
             chartOptions: {
-                title: {
-                    text: 'Temperaturen im Hühnerhaus',
-                    align: 'center',
-                    floating: true,
-                    style: {
-                        fontSize:  '18px',
-                    },
-                },
+                // title: {
+                //     text: 'Temperaturen im Hühnerhaus',
+                //     align: 'center',
+                //     floating: true,
+                //     style: {
+                //         fontSize:  '18px',
+                //     },
+                // },
                 theme: {
                     palette: 'palette7'
                 },
