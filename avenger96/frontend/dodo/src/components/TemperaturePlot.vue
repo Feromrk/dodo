@@ -16,6 +16,7 @@
 
 <script>
   import axios from 'axios'
+  import { EventBus } from "./eventbus.js";
 
   export default {
     name: 'TemperaturePlot',
@@ -30,7 +31,17 @@
                 for (let [timestamp, data] of Object.entries(response.data)) {
                     temps_in.push([parseInt(timestamp+"000"), parseFloat(data[0])])
                     temps_out.push([parseInt(timestamp+"000"), parseFloat(data[1])])
-                }                
+                }
+
+                //data for Now.vue
+                let latest_timestamp = temps_in[temps_in.length-1][0]
+                EventBus.$emit("now-data", {
+                    temp_in : temps_in[temps_in.length-1][1],
+                    temp_out : temps_out[temps_in.length-1][1],
+                    battery : parseInt(response.data[String(latest_timestamp).slice(0, -3)][3]),
+                    timestamp : latest_timestamp,
+                });
+
                 this.series = [
                     {
                         name: "Outside",
@@ -42,8 +53,8 @@
                     }
                 ]
                 this.seriesLine = this.series
-                console.log('temps inside', temps_in)
-                console.log('temps outside', temps_out)
+                //console.log('temps inside', temps_in)
+                //console.log('temps outside', temps_out)
 
                 this.chartOptionsLine = {
                     ...this.chartOptionsLine,
@@ -58,6 +69,7 @@
                         }
                     }
                 };
+
             })
             .catch(error => {
                 console.log(error)

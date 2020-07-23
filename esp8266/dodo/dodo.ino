@@ -38,9 +38,9 @@ static class {
 #define RPI_POWER_PIN D1
 
 // ######################### GLOBAL VARIABLES #########################
-const unsigned int FW_VERSION = 11;
+const unsigned int FW_VERSION = 15;
 
-#define DEFAULT_SLEEP_MS (5*60*1000) //5min
+#define DEFAULT_SLEEP_MS (3*60*1000) //3min
 #define ERROR_SLEEP_MS (60*1000) //1min
 #define ALLOWED_RPI_UPTIME_MS (DEFAULT_SLEEP_MS*2)
 
@@ -95,7 +95,8 @@ int bat_charge() {
 
 // deep sleep
 void delayed_restart(String msg = "", unsigned long msec = ERROR_SLEEP_MS) {
-  Serial.println(msg + " Going to deep sleep for ms: " + msec);
+  msg = msg + " Going to deep sleep for ms: " + msec;
+  Serial.println(msg);
   ESP.deepSleep(msec*1000, WAKE_RF_DEFAULT);
 }
 
@@ -118,6 +119,9 @@ void firmware_update() {
 }
 
 void shutdown_rpi(bool graceful = true, unsigned int timeout_s = 40) {
+
+  if((!rpi_state.powered) || rpi_state.halted)
+    return;
 
   Serial.println(F("requesting rpi shutdown"));
   digitalWrite(RPI_SHUTDOWN_PIN, LOW); //request shutdown
@@ -148,7 +152,7 @@ void shutdown_rpi(bool graceful = true, unsigned int timeout_s = 40) {
   rpi_state.boot_time_ms = 0;
 }
 
-void boot_rpi(bool await = false, unsigned int timeout_s = 40) {
+void boot_rpi(bool await = true, unsigned int timeout_s = 40) {
 
   Serial.println(F("turning on rpi power"));
   digitalWrite(RPI_SHUTDOWN_PIN, HIGH); //reset request shutdown
@@ -207,7 +211,7 @@ void dispatch_tasks(const JsonDocument &json_doc) {
                    ! task["params"]["delay_s"].isNull()) {
 
                     unsigned int delay_ms = task["params"]["delay_s"].as<unsigned int>()*1000;
-                    Serial.print("waiting seconds: "); Serial.println(delay_ms/1000);
+                    Serial.print(F("waiting seconds: ")); Serial.println(delay_ms/1000);
                     delay(delay_ms);
                 }
                 boot_rpi();
@@ -216,12 +220,92 @@ void dispatch_tasks(const JsonDocument &json_doc) {
     }
 }
 
-void setup() {
-  unsigned long boot_time_ms = millis();
+String sensor_push() {
 
-  //turn on sensors first, since they have 1 second wake up time
-  pinMode(SENSOR_POWER_PIN, OUTPUT);
+  //turn on sensors and wait 1 sec
+  digitalWrite(BAT_GATE_PIN, LOW);
   digitalWrite(SENSOR_POWER_PIN, HIGH);
+  delay(1000);
+  
+  const float temp_ntc = thermistor.readTempC();
+
+  // Reading temperature or humidity takes about 250 milliseconds!
+  // Sensor readings may also be up to 2 seconds 'old' (its a very slow sensor)
+  //const float hum_dht = dht.readHumidity();
+  // Read temperature as Celsius (the default)
+  const float temp_dht = dht.readTemperature();
+
+  //turn off sensors
+  digitalWrite(SENSOR_POWER_PIN, LOW);
+
+  // Check if any reads failed and exit early (to try again).
+  //if (isnan(hum_dht) || isnan(temp_dht)) {
+  if(isnan(temp_dht)) {
+    Serial.println("Failed to read DHT sensor");
+    return "";
+  }
+
+  error = !timeClient.update();
+  unsigned long timestamp = timeClient.getEpochTime();
+  if(error || timestamp < 1593453622) {
+    Serial.println(F("Failed to ntp sync"));
+    return "";
+  }
+
+  //GET REQUEST
+  HTTPClient http;
+
+  String full_url = url 
+    + "?temp\_in=" + temp_ntc 
+    + "&temp_out=" + temp_dht
+    + "&rpi_state=" + (rpi_state.powered ? 1 : 0)
+    + "&timestamp=" + timestamp
+    + "&bat=" + bat_charge()
+    + "&fw_version=" + FW_VERSION;
+  Serial.print(F("GET request to: ")); Serial.println(full_url);
+  http.begin(full_url.c_str());
+  int http_response_code = http.GET();
+  
+  String response = http.getString();
+  http.end();
+
+  Serial.print(F("HTTP response code: ")); Serial.println(http_response_code);
+
+  if(http_response_code != 200) {
+    Serial.println(F("Wrong HTTP response code"));
+    return "";
+  }
+
+  return response;
+}
+
+//false on error, true otherwise
+bool sensor_push_and_dispatch() {
+  
+  DynamicJsonDocument json_doc(1024);
+  DeserializationError json_error;
+
+  String response = sensor_push();
+  
+  if(response != "") {
+      json_error = deserializeJson(json_doc, response);
+  } else {
+    return false;
+  }
+
+  if (json_error) {
+    String msg = String("deserializeJson() failed: ") + json_error.c_str();
+    Serial.println(msg);
+    return false;
+  }
+
+  //DISPATCH TASKS FROM BACKEND
+  dispatch_tasks(json_doc);
+}
+
+void setup() {
+  pinMode(SENSOR_POWER_PIN, OUTPUT);
+  digitalWrite(SENSOR_POWER_PIN, LOW);
 
   pinMode(BAT_GATE_PIN, OUTPUT);
   digitalWrite(BAT_GATE_PIN, LOW);
@@ -264,89 +348,45 @@ void setup() {
   firmware_update();
 
   dht.begin();
-
   timeClient.begin();
-  error = !timeClient.update();
-  unsigned long timestamp = timeClient.getEpochTime();
-  if(error || timestamp < 1593453622) {
-    delayed_restart("Failed to ntp sync!");
+
+  rpi_state.powered = false;
+  rpi_state.halted = false;
+  rpi_state.boot_time_ms = 0;
+
+  if (!sensor_push_and_dispatch()) {
+    delayed_restart("communication error", DEFAULT_SLEEP_MS);
   }
 
-  //wait here if 1 second has not passed yet
-  while(millis() - boot_time_ms < 1000) {
-    delay(100);
-  }
-
-  const float temp_ntc = thermistor.readTempC();
-
-  // Reading temperature or humidity takes about 250 milliseconds!
-  // Sensor readings may also be up to 2 seconds 'old' (its a very slow sensor)
-  //const float hum_dht = dht.readHumidity();
-  // Read temperature as Celsius (the default)
-  const float temp_dht = dht.readTemperature();
-
-  // Check if any reads failed and exit early (to try again).
-  //if (isnan(hum_dht) || isnan(temp_dht)) {
-  if(isnan(temp_dht)) {
-    delayed_restart("Failed to read from DHT sensor!");
-  }
-
-  //GET REQUEST
-  HTTPClient http;
-
-  String full_url = url 
-    + "?temp\_in=" + temp_ntc 
-    + "&temp_out=" + temp_dht
-    + "&rpi_state=-1"
-    + "&timestamp=" + timestamp
-    + "&bat=" + bat_charge()
-    + "&fw_version=" + FW_VERSION;
-  Serial.print("GET request to: "); Serial.println(full_url);
-  http.begin(full_url.c_str());
-  int http_response_code = http.GET();
-
-  Serial.print("HTTP response code: "); Serial.println(http_response_code);
+  unsigned long sensor_push_time_ms = millis();
   
-  DynamicJsonDocument json_doc(1024);
-  DeserializationError json_error;
-  
-  if(http_response_code == 200) {
-      json_error = deserializeJson(json_doc, http.getString());
-  } else {
-    delayed_restart("Backend error", DEFAULT_SLEEP_MS);
-  }
-  
-  http.end();
-
-  if (json_error) {
-    delayed_restart(
-        String("deserializeJson() failed: ") + json_error.c_str(),
-        DEFAULT_SLEEP_MS
-    );
-  }
-
-  //DISPATCH TASKS FROM BACKEND
-  dispatch_tasks(json_doc);
-
   //if rpi is powered, turn it off after ALLOWED_RPI_UPTIME_MS to save battery
   if (rpi_state.powered) {
-    while(millis() - rpi_state.boot_time_ms < ALLOWED_RPI_UPTIME_MS ) {
+    unsigned long now_ms = millis();
+    while(now_ms - rpi_state.boot_time_ms < ALLOWED_RPI_UPTIME_MS ) {
+
+        if(now_ms - sensor_push_time_ms >= DEFAULT_SLEEP_MS) {
+          sensor_push_and_dispatch();
+          sensor_push_time_ms = millis();
+        }
+      
         delay(1000);
+        now_ms = millis();
     }
 
     shutdown_rpi();
   }
 
   unsigned long sleep_time_ms;
-  unsigned long uptime_ms = millis() - boot_time_ms;
+  unsigned long time_since_last_sensor_push_ms = millis() - sensor_push_time_ms;
 
-  //if esp was on longer than DEFAULT_SLEEP_MS, no sleep
-  if(uptime_ms > DEFAULT_SLEEP_MS) {
-     sleep_time_ms = 10;
-     
-  //if esp was on shorter than 5 min, substract on time
+  //no sleep, if sensor_push needs to be done immediately
+  if(time_since_last_sensor_push_ms > DEFAULT_SLEEP_MS ) {
+    sleep_time_ms = 1;
+
+  //substract time since last sensor_push from sleep time
   } else {
-    sleep_time_ms = DEFAULT_SLEEP_MS - uptime_ms; 
+    sleep_time_ms = DEFAULT_SLEEP_MS - time_since_last_sensor_push_ms;
   }
 
   delayed_restart("All work done", sleep_time_ms);

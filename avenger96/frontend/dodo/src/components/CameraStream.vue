@@ -75,6 +75,7 @@
                         this.show_stream = false;
                         this.show_progress_circle = false;
                         this.show_progress_info_text = false;
+                        return;
                     } else {
                         this.show_progress_info_text = true;
                     }

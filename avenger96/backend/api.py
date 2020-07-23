@@ -238,8 +238,11 @@ def get_camera_stream():
     except requests.exceptions.ConnectionError:
         return Response(status=424)
     
-    return Response(r.iter_content(chunk_size=10*1024),
-                    content_type=r.headers['Content-Type'])
+    try:
+        return Response(r.iter_content(chunk_size=10*1024),
+                        content_type=r.headers['Content-Type'])
+    except ValueError:
+        pass
 
 
 
