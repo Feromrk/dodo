@@ -28,14 +28,14 @@ static class {
 // ######################### PIN DEFINITIONS #########################
 #define DHT_PIN D7     // Digital pin connected to the DHT sensor
 
-//never pull HIGH this and BAT_GATE_PIN at the same time
+
 #define SENSOR_POWER_PIN D6
 
-#define BAT_GATE_PIN D5
 
-#define RPI_HALTED_PIN D3 //TODO: needs pull down resistor
-#define RPI_SHUTDOWN_PIN D2
-#define RPI_POWER_PIN D1
+
+#define RPI_HALTED_PIN D3 
+#define RPI_SHUTDOWN_PIN D4 //FROM d2 move to D4
+#define RPI_POWER_PIN D5 //from D1 move to D5
 
 // ######################### GLOBAL VARIABLES #########################
 const unsigned int FW_VERSION = 15;
