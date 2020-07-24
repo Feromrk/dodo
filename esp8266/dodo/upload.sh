@@ -2,7 +2,7 @@
 
 SRC_FILE="dodo.ino"
 FW_FILE="dodo.ino.nodemcu.bin"
-FW_VERSION=$(grep "const unsigned int FW_VERSION" dodo.ino | sed -e "s/^const unsigned int FW_VERSION = //" -e "s/;$//")
+FW_VERSION=$(grep "#define FW_VERSION" dodo.ino | sed -e "s/^#define FW_VERSION //" -e "s/;$//")
 
 if [[ ! -f "$FW_FILE" ]]; then
     echo "$FW_FILE does not exist; exiting"
