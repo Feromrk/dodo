@@ -21,8 +21,14 @@
   export default {
     name: 'TemperaturePlot',
 
-    async mounted() {
-        await axios
+    mounted() {
+        this.get_data();
+        EventBus.$on("should-update-data", this.get_data);
+    },
+
+    methods: {
+        async get_data() {
+            await axios
             .get('http://192.168.2.117:5000/sensor-data')
             .then(response => {
                 let temps_in = []
@@ -44,11 +50,11 @@
 
                 this.series = [
                     {
-                        name: "Outside",
+                        name: "Inside",
                         data: temps_in
                     },
                     {
-                        name: "Inside",
+                        name: "Outside",
                         data: temps_out
                     }
                 ]
@@ -74,6 +80,7 @@
             .catch(error => {
                 console.log(error)
             })
+        }
     },
 
     data: function() {

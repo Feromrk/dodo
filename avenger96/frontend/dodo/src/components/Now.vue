@@ -10,7 +10,7 @@
             <v-col>
                 <center>
                     <div id="current-value">
-                        {{ temp_inside }}
+                        {{ temp_inside.toFixed(1) }}
                         <span>°C</span>
                     </div>
                     Inside
@@ -20,7 +20,7 @@
             <v-col>
                 <center>
                      <div id="current-value">
-                        {{temp_outside}}
+                        {{ temp_outside.toFixed(1) }}
                         <span>°C</span>
                      </div>
                     Outside
@@ -53,22 +53,44 @@ export default {
             temp_inside: -1,
             temp_outside: -1,
             battery: -1,
+            data: {}
         }
     },
 
     mounted() {
+        this.repeatEvery(this.add_minute, 60*1000);
+
         EventBus.$on("now-data", data => {
-            console.log("hello from now.vue", data);
-            //console.log
 
             let now = new Date();
             let timestamp = new Date(data.timestamp);
-            this.minutes_ago = Math.round((now - timestamp) / 1000 / 60);
-
+            this.minutes_ago = Math.floor((now - timestamp) / 1000 / 60);
             this.temp_inside = data.temp_in;
             this.temp_outside = data.temp_out;
             this.battery = data.battery;
         });
+    },
+
+    methods: {
+        add_minute() {
+            this.minutes_ago++;
+            //if(this.minutes_ago % 4 === 0) {
+            if(this.minutes_ago > 3) {
+                EventBus.$emit("should-update-data");
+            }
+        },
+        repeatEvery( func, interval ) {
+            let vm = this;
+
+            function repeater() {
+                vm.repeatEvery( func, interval);
+                func();
+            }
+            var now = new Date();
+            var delay = interval - now % interval;
+
+            setTimeout(repeater, delay);
+        }
     }
 }
 </script>
