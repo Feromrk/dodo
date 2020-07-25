@@ -25,38 +25,32 @@
 Thermistor::Thermistor(
 	int pin,
 	double vcc,
-	double analogReference,
-	int adcMax,
 	int seriesResistor,
 	int thermistorNominal,
 	int temperatureNominal,
 	int bCoef,
 	int samples,
 	int sampleDelay,
-    int correction
-                      ):
+    Adafruit_ADS1115 *ads):
 		_pin(pin),
 		_vcc(vcc),
-		_analogReference(analogReference),
-		_adcMax(adcMax),
 		_seriesResistor(seriesResistor),
 		_thermistorNominal(thermistorNominal),
 		_temperatureNominal(temperatureNominal),
 		_bCoef(bCoef),
 		_samples(samples),
 		_sampleDelay(sampleDelay),
-		_correction(correction) {
-  pinMode(_pin, INPUT);
+		_ads(ads) {
 }
 
 double Thermistor::readADC() const {
 	unsigned sum = 0;
 	for(int i=0; i<_samples-1; i++) {
-		sum += analogRead(_pin);
+		sum += _ads->readADC_SingleEnded(_pin);
 		delay(_sampleDelay);
 	}
-	sum += analogRead(_pin);
-	return ((1. * sum) / _samples) + _correction;
+	sum += _ads->readADC_SingleEnded(_pin);
+	return (1. * sum) / _samples;
 }
 
 double Thermistor::readTempK() const {
@@ -72,7 +66,10 @@ double Thermistor::readTempF() const {
 }
 
 double Thermistor::adcToK(double adc) const {
-	double resistance = -1.0 * (_analogReference * _seriesResistor * adc) / (_analogReference * adc - _vcc * _adcMax);
+	//double resistance = -1.0 * (_analogReference * _seriesResistor * adc) / (_analogReference * adc - _vcc * _adcMax);
+    // x = 1,49*10k / (3,3 - 1,49)
+    double voltage =  adc * 0.0001875;
+    double resistance = voltage * _seriesResistor / (_vcc - voltage);
 	double steinhart = (1.0 / (_temperatureNominal - ABS_ZERO)) + (1.0 / _bCoef) * log(resistance / _thermistorNominal);
 	double kelvin = 1.0 / steinhart;
 	return kelvin;

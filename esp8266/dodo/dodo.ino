@@ -188,7 +188,7 @@ String sensor_push() {
 
   DHT dht(DHT_PIN, DHT22);
   Adafruit_ADS1115 ads;
-  Thermistor thermistor(3, 3.3, 3.3, 65535, 10000, 10000, 25, 3950, 10, 50, 0, &ads);
+  Thermistor thermistor(3, 3.3, 10000, 10000, 25, 3950, 10, 50, &ads);
 
   //turn on sensors and wait 1 sec
   digitalWrite(SENSOR_POWER_PIN, HIGH);
