@@ -1,6 +1,6 @@
 <template> 
     <div id="wrapper">
-        <v-overlay color="white" absolute opacity="1" :value="!visible">
+        <v-overlay z-index="4" color="white" absolute opacity="1" :value="!visible">
             <v-progress-circular color="primary" indeterminate></v-progress-circular>
         </v-overlay>
 
