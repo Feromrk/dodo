@@ -1,8 +1,9 @@
-<template>
-        
-    
-        
+<template> 
     <div id="wrapper">
+        <v-overlay color="white" absolute opacity="1" :value="!visible">
+            <v-progress-circular color="primary" indeterminate></v-progress-circular>
+        </v-overlay>
+
         <center><h1>Temperatures</h1></center>
 
         <div id="temperature_plot-main">
@@ -24,6 +25,10 @@
     mounted() {
         this.get_data();
         EventBus.$on("should-update-data", this.get_data);
+    },
+
+    updated() {
+        this.visible = true;
     },
 
     methods: {
@@ -85,6 +90,7 @@
 
     data: function() {
         return {
+            visible: false,
             series: [{
                 data: []
             }],

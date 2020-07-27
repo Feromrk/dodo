@@ -1,6 +1,10 @@
 <template>
     <v-container>
 
+        <v-overlay color="white" absolute opacity="1" :value="!visible">
+            <v-progress-circular color="primary" indeterminate></v-progress-circular>
+        </v-overlay>
+
         <v-row justify=center>
             <div  v-if="this.minutes_ago===1">{{minutes_ago}} minute ago</div>
             <div  v-else>{{minutes_ago}} minutes ago</div>
@@ -49,6 +53,7 @@ export default {
 
     data: function() {
         return {
+            visible: false,
             minutes_ago: -1,
             temp_inside: -1,
             temp_outside: -1,
@@ -68,6 +73,7 @@ export default {
             this.temp_inside = data.temp_in;
             this.temp_outside = data.temp_out;
             this.battery = data.battery;
+            this.visible = true;
         });
     },
 
