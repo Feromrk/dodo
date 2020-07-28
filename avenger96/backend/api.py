@@ -153,7 +153,7 @@ def get_sensor_data():
                         row['bat'],
                         row['fw_version'],
                     ]
-                if i > 800: 
+                if i > 400: 
                     break
             
             resp = Response(json.dumps(r_dict), status=200, content_type='application/json')
@@ -235,17 +235,14 @@ def get_camera_stream():
 
     try:
         r = requests.get('http://192.168.2.106:8081/', stream=True, timeout=(3.05, 27))
-    except requests.exceptions.ConnectionError:
-        return Response(status=424)
-    
-    try:
+
         return Response(r.iter_content(chunk_size=10*1024),
                         content_type=r.headers['Content-Type'])
-    except ValueError:
-        pass
+    except requests.exceptions.ConnectionError:
+        return Response(status=424)
 
 
 
 
-app.run(host='192.168.2.117', port=5000)
+app.run(host='192.168.2.117', port=5000, ssl_context=('/etc/letsencrypt/live/visitdodo.ddns.net/fullchain.pem', '/etc/letsencrypt/live/visitdodo.ddns.net/privkey.pem'))
 #app.run(host='0.0.0.0', port=5000)
