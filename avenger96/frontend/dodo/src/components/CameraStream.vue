@@ -35,7 +35,7 @@
             show_stream: false,
             show_progress_circle: false,
             show_progress_info_text: false,
-            camera_url: this.$hostname + '/camera-stream'
+            camera_url: this.$backend_hostname + '/camera-stream'
         }
     },
     
@@ -46,7 +46,7 @@
             this.check_stream();
             await axios({
                 method: 'post',
-                url: this.$hostname + '/sensor-task',
+                url: this.$backend_hostname + '/sensor-task',
                 data: {
                     id: 2
                 }

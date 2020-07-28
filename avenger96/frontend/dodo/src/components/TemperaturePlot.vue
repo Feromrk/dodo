@@ -34,7 +34,7 @@
     methods: {
         async get_data() {
             await axios
-            .get(this.$hostname + '/sensor-data')
+            .get(this.$backend_hostname + '/sensor-data')
             .then(response => {
                 let temps_in = []
                 let temps_out = []
