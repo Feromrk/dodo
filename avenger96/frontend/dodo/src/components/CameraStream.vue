@@ -13,7 +13,7 @@
         </v-row>
 
         <v-row justify=center>
-            <img src="http://192.168.2.117:5000/camera-stream" alt="Camera stream not available :(" v-if="show_stream" width="90%">
+            <img :src="camera_url" alt="Camera stream not available :(" v-if="show_stream" width="90%">
         </v-row>
 
     </v-container>
@@ -35,7 +35,7 @@
             show_stream: false,
             show_progress_circle: false,
             show_progress_info_text: false,
-            
+            camera_url: this.$hostname + '/camera-stream'
         }
     },
     
@@ -46,7 +46,7 @@
             this.check_stream();
             await axios({
                 method: 'post',
-                url: 'http://192.168.2.117:5000/sensor-task',
+                url: this.$hostname + '/sensor-task',
                 data: {
                     id: 2
                 }
@@ -61,7 +61,7 @@
 
         check_stream() {
             console.log("checking stream availability");
-            fetch('http://192.168.2.117:5000/camera-stream')
+            fetch(this.camera_url)
             .then((resp) => {
                 if(resp.ok) {
                     console.log("stream is there!");

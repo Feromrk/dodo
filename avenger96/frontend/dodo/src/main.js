@@ -4,6 +4,7 @@ import vuetify from './plugins/vuetify';
 import VueApexCharts from 'vue-apexcharts'
 
 Vue.config.productionTip = false
+Vue.prototype.$hostname = 'https://visitdodo.ddns.net:5000'
 
 Vue.use(VueApexCharts)
 Vue.component('apexchart', VueApexCharts)

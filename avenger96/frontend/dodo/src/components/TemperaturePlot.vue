@@ -34,7 +34,7 @@
     methods: {
         async get_data() {
             await axios
-            .get('http://192.168.2.117:5000/sensor-data')
+            .get(this.$hostname + '/sensor-data')
             .then(response => {
                 let temps_in = []
                 let temps_out = []
