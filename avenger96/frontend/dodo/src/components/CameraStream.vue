@@ -35,7 +35,7 @@
             show_stream: false,
             show_progress_circle: false,
             show_progress_info_text: false,
-            camera_url: this.$backend_hostname + '/camera-stream'
+            camera_url: process.env.VUE_APP_FULL_BACKEND_URL + '/camera-stream'
         }
     },
     

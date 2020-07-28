@@ -4,12 +4,38 @@
     <meta charset="utf-8">
     <meta http-equiv="X-UA-Compatible" content="IE=edge">
     <meta name="viewport" content="width=device-width,initial-scale=1.0">
+
+    <meta property="og:site_name" content="Project dodo">
+    <meta property="og:title" content="Project dodo - A smart hen-coop">
+    <meta name="description" content="Project dodo is about monitoring a smart hen-coop which is equipped with a microcontroller, some sensors and actuators - everything solar-powered.">
+    <meta property="og:description" content="Project dodo is all about monitoring a smart hen house/coop.">
+
+    <meta property="og:url" content="<%= VUE_APP_FULL_URL %>">
+    <meta name="robots" content="index,follow">
+
+    <meta property="og:image:secure" itemprop="image" content="<%= VUE_APP_FULL_URL %>/logo_300x300.jpg">
+    <meta property="og:image:secure_url" itemprop="image" content="<%= VUE_APP_FULL_URL %>/logo_300x300.jpg">
+    <meta property="og:image" itemprop="image" content="<%= VUE_APP_FULL_URL %>/logo_300x300.jpg">
+    <meta property="og:image:type" content="image/jpg">
+    <meta property="og:image:width" content="300">
+    <meta property="og:image:height" content="300">
+    <link itemprop="thumbnailUrl" href="<%= VUE_APP_FULL_URL %>/logo_300x300.jpg">
+    <link rel="image_src" href="<%= VUE_APP_FULL_URL %>/logo_300x300.jpg">
+
+    <meta property="og:type" content="website">
+    <meta property="og:locale" content="en_GB">
+    <meta property="og:locale:alternate" content="de_DE">
+
     <link rel="icon" href="<%= BASE_URL %>favicon.ico">
-    <title><%= htmlWebpackPlugin.options.title %></title>
+    <title>Project dodo - Monitoring of a smart hen-coop</title>
+    <!--<title><%= htmlWebpackPlugin.options.title %></title>-->
     <link rel="stylesheet" href="https://fonts.googleapis.com/css?family=Roboto:100,300,400,500,700,900">
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@mdi/font@latest/css/materialdesignicons.min.css">
   </head>
   <body>
+    <span itemprop="image" itemscope itemtype="image/jpg"> 
+      <link itemprop="url" href="<%= VUE_APP_FULL_URL %>/logo_300x300.jpg"> 
+    </span>
     <noscript>
       <strong>We're sorry but <%= htmlWebpackPlugin.options.title %> doesn't work properly without JavaScript enabled. Please enable it to continue.</strong>
     </noscript>
