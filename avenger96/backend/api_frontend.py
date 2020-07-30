@@ -24,6 +24,12 @@ db_fieldnames = [
 ]
 task_queue_file = '/var/opt/dodo/task_queue.json'
 
+try:
+    f = open(task_queue_file)
+except IOError:
+    # If not exists, create the file
+    with open(task_queue_file, 'w+') as f:
+        f.write('[]')
 
 # ---------------------------
 # ENDPOINTS FOR THE FRONTEND over HTTPS
@@ -101,38 +107,37 @@ def post_sensor_task():
 
 
     #read queue from disk to memory
-    with open(task_queue_file, 'w+') as f:
+    with open(task_queue_file, 'r') as f:
         task_queue = json.load(f)
 
-        if len(task_queue):
-            for i, task in enumerate(task_queue):
-                #if task in queue, update params
-                if task['id'] == request_body['id']:
-                    print('updating task')
-                    params = request_body.get('params')
-                    if params:
-                        task['params'] = params
-                    else:
-                        task.pop('params', None)
-                        task_queue[i] = task
-                    new_task = False
-                    #move task to the end of the list
-                    task_queue.append(task_queue.pop(i))
-                    break
-        
-        if new_task:
-            print('adding task')
-            task_queue.append(request_body)
-        
-        print("New task queue:", task_queue)
-        
-        resp = Response(json.dumps(task_queue), status=200, content_type='application/json')
+    if len(task_queue):
+        for i, task in enumerate(task_queue):
+            #if task in queue, update params
+            if task['id'] == request_body['id']:
+                print('updating task')
+                params = request_body.get('params')
+                if params:
+                    task['params'] = params
+                else:
+                    task.pop('params', None)
+                    task_queue[i] = task
+                new_task = False
+                #move task to the end of the list
+                task_queue.append(task_queue.pop(i))
+                break
+    
+    if new_task:
+        print('adding task')
+        task_queue.append(request_body)
+    
+    print("New task queue:", task_queue)
+    
+    resp = Response(json.dumps(task_queue), status=200, content_type='application/json')
 
-        #rewind stream and write queue to disk
-        f.seek(0)
+    with open(task_queue_file, 'w') as f:
         json.dump(task_queue, f)
 
-        return resp
+    return resp
 
 @app.route('/camera-stream', methods=['GET'])
 def get_camera_stream():

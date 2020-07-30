@@ -27,6 +27,13 @@ db_fieldnames = [
 firmware_folder = '/var/opt/dodo/sensor_firmware'
 task_queue_file = '/var/opt/dodo/task_queue.json'
 
+try:
+    f = open(task_queue_file)
+except IOError:
+    # If not exists, create the file
+    with open(task_queue_file, 'w+') as f:
+        f.write('[]')
+
 # ---------------------------
 # ENDPOINTS FOR THE ESP8266 over plain HTTP
 # ---------------------------
@@ -123,16 +130,21 @@ def get_sensor_push():
 
         writer.writerow(args)
 
-    with open(task_queue_file, 'w+') as f:
+        print("csv")
+
+    with open(task_queue_file, 'r') as f:
         task_queue = json.load(f)
 
-        r = Response(json.dumps(task_queue), status=200, content_type='application/json')
+    print("tasks", task_queue)
 
-        #rewind stream and clear file
-        f.seek(0)
-        f.write('')
-        return r
+    r = Response(json.dumps(task_queue), status=200, content_type='application/json')
+
+    #clear file
+    with open(task_queue_file, 'w') as f:
+        f.write('[]')
+    
+    return r
 
 
-app.run(host='192.168.2.117', port=5000)
+app.run(host='192.168.2.117', port=5001)
 #app.run(host='0.0.0.0', port=5000)
