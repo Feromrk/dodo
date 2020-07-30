@@ -31,9 +31,9 @@
 #define RPI_POWER_PIN D5 
 
 // ######################### GLOBAL VARIABLES #########################
-#define FW_VERSION 16
+#define FW_VERSION 18
 #define CYCLE_TIME_MS (3*60*1000) //3min
-#define ALLOWED_RPI_UPTIME_MS (CYCLE_TIME_MS*2)
+#define ALLOWED_RPI_UPTIME_MS (3.1*60*1000) //bigger than CYCLE_TIME_MS so rpi_state will be captured correctly
 
 int error;
 
@@ -42,8 +42,8 @@ int error;
 const char* ssid = ""; 
 const char* password = "";
 
-String url = "http://192.168.2.117:5000/sensor-push";
-String fw_url = "http://192.168.2.117:5000/sensor-firmware";
+String url = "http://192.168.2.117:5001/sensor-push";
+String fw_url = "http://192.168.2.117:5001/sensor-firmware";
 
 struct {
     bool powered;
@@ -232,16 +232,15 @@ String sensor_push() {
   Sprintl(F("GET request to: ")); Sprintln(full_url);
   http.begin(full_url.c_str());
   int http_response_code = http.GET();
-  
-  String response = http.getString();
-  http.end();
 
   Sprintl(F("HTTP response code: ")); Sprintln(http_response_code);
-
   if(http_response_code != 200) {
     Sprintln(F("Wrong HTTP response code"));
     return "";
   }
+  
+  String response = http.getString();
+  http.end();
 
   return response;
 }
