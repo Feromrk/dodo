@@ -152,6 +152,6 @@ def get_camera_stream():
 
 
 
-
-app.run(host='192.168.2.117', port=5000, ssl_context=('/etc/letsencrypt/live/visitdodo.ddns.net/fullchain.pem', '/etc/letsencrypt/live/visitdodo.ddns.net/privkey.pem'))
-#app.run(host='0.0.0.0', port=5000)
+if __name__ == '__main__':
+    app.run(host='192.168.2.117', port=5000, ssl_context=('/etc/letsencrypt/live/visitdodo.ddns.net/fullchain.pem', '/etc/letsencrypt/live/visitdodo.ddns.net/privkey.pem'))
+    #app.run(host='0.0.0.0', port=5000)

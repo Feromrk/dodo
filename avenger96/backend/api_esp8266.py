@@ -145,6 +145,6 @@ def get_sensor_push():
     
     return r
 
-
-app.run(host='192.168.2.117', port=5001)
-#app.run(host='0.0.0.0', port=5000)
+if __name__ == '__main__':
+    app.run(host='192.168.2.117', port=5001)
+    #app.run(host='0.0.0.0', port=5000)
