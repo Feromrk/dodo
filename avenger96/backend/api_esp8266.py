@@ -15,7 +15,7 @@ app = flask.Flask(__name__)
 app.config['DEBUG'] = True
 #CORS(app) #fix this in production
 
-db_filename = 'db.csv'
+db_filename = '/var/opt/dodo/db.csv'
 db_fieldnames = [
     'timestamp', 
     'temp_in',

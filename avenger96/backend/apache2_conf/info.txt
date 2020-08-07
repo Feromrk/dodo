@@ -1,0 +1,12 @@
+apt install libapache2-mod-wsgi-py3
+
+conf files placed in /etc/apache2/
+
+symlink from repo to /var/www
+ln -s /home/dodo/repos/dodo/avenger96/backend /var/www/dodo
+
+access rights for user www-data
+chgrp www-data /home/*
+chmod g+x /home/*
+chgrp -R www-data /home/dodo/*/dodo
+chmod -R g+x /home/dodo/*/dodo
