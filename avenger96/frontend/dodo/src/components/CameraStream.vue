@@ -18,7 +18,7 @@
             <v-tooltip v-model="show_tooltip" top max-width="80%" v-if="show_progress_info_text">
                 <template v-slot:activator>
                     <v-btn icon @click="show_tooltip = !show_tooltip" class="mt-2 ml-2">
-                        <v-icon large>mdi-alert-circle</v-icon>
+                        <v-icon large>mdi-information</v-icon>
                     </v-btn>
                 </template>
                 <span>To reduce power consumption, the controller located at the chicken house is off most of the time. It turns on every 3 minutes to check whether it should power on the webcam.</span>
