@@ -49,10 +49,16 @@
 
                 //data for Now.vue
                 let latest_timestamp = temps_in[temps_in.length-1][0]
+                
+                let latest_timestamp_rpi_off = latest_timestamp, i=1;
+                while(parseInt(response.data[String(latest_timestamp_rpi_off).slice(0, -3)][2])) {
+                    latest_timestamp_rpi_off = temps_in[temps_in.length-++i][0]
+                }
+
                 EventBus.$emit("now-data", {
                     temp_in : temps_in[temps_in.length-1][1],
                     temp_out : temps_out[temps_in.length-1][1],
-                    battery : parseInt(response.data[String(latest_timestamp).slice(0, -3)][3]),
+                    battery : parseInt(response.data[String(latest_timestamp_rpi_off).slice(0, -3)][3]),
                     timestamp : latest_timestamp,
                 });
 
