@@ -171,6 +171,9 @@
                 },
                 xaxis: {
                     type: 'datetime',
+                    labels: {
+                        datetimeUTC: false
+                    }
                 },
                 yaxis: [
                     {
