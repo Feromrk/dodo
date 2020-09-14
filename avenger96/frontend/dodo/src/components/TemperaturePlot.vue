@@ -294,6 +294,9 @@
                     type: 'datetime',
                     tooltip: {
                         enabled: false
+                    },
+                    labels: {
+                        datetimeUTC: false
                     }
                 },
                 yaxis: {
