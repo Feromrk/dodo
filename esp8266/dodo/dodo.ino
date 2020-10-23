@@ -31,7 +31,7 @@
 #define RPI_POWER_PIN D5 
 
 // ######################### GLOBAL VARIABLES #########################
-#define FW_VERSION 18
+#define FW_VERSION 19
 #define CYCLE_TIME_MS (3*60*1000) //3min
 #define ALLOWED_RPI_UPTIME_MS (3.1*60*1000) //bigger than CYCLE_TIME_MS so rpi_state will be captured correctly
 
@@ -53,9 +53,24 @@ struct {
 
 // ######################### PROGRAM LOGIC #########################
 
-int bat_charge() {
+//in percent, values 0 - 100
+byte bat_charge() {
   int bat_v = analogRead(A0);
-  return bat_v;
+
+  //636 at 3.64V -> lipo almost empty
+  //738 all time high in backend
+  int min_v = 636, max_v = 738;
+
+  if(bat_v < min_v)
+    bat_v = min_v;
+  else if(bat_v > max_v)
+    bat_v = max_v;
+
+  //battery charge in percent 0.0 - 1.0
+  float bat_p = (bat_v - min_v) / (float)(max_v - min_v);
+
+  //battery charge in percent (e.g. 62.47) rounded
+  return (byte)((bat_p * 100) + 0.5);
 }
 
 void delayed_restart(String msg, unsigned long msec) {

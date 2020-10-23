@@ -61,6 +61,14 @@
           </v-col>
         </v-row>
 
+        <v-row justify=center>
+          <v-col cols="12" lg="10">
+              <v-card>
+                <About/>
+              </v-card>
+          </v-col>
+        </v-row>
+
 
       </v-container>
 
@@ -72,6 +80,7 @@
 import TemperaturePlot from './components/TemperaturePlot';
 import CameraStream from './components/CameraStream'
 import Now from './components/Now'
+import About from './components/About'
 
 export default {
   name: 'App',
@@ -79,7 +88,8 @@ export default {
   components: {
     TemperaturePlot,
     CameraStream,
-    Now
+    Now,
+    About
   },
 
   data: () => ({
