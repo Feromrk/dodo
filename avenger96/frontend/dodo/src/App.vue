@@ -48,7 +48,7 @@
         <v-row justify=center>
             <v-col cols="12" lg="10">
                 <v-card>
-                  <TemperaturePlot/>
+                  <TemperaturePlot v-if="!this.backend_error"/>
                 </v-card>
             </v-col>
         </v-row>
@@ -56,7 +56,7 @@
         <v-row justify=center>
           <v-col cols="12" lg="10">
               <v-card>
-                <CameraStream/>
+                <CameraStream v-if="!this.backend_error"/>
               </v-card>
           </v-col>
         </v-row>
@@ -81,6 +81,7 @@ import TemperaturePlot from './components/TemperaturePlot';
 import CameraStream from './components/CameraStream'
 import Now from './components/Now'
 import About from './components/About'
+import { EventBus } from "./components/eventbus.js";
 
 export default {
   name: 'App',
@@ -92,8 +93,16 @@ export default {
     About
   },
 
-  data: () => ({
-    //
-  }),
-};
+  mounted() {
+    EventBus.$on("backend-error", () => {
+        this.backend_error = true;
+    });
+  },
+
+  data: function() {
+        return {
+          backend_error: false
+        };
+  }
+}
 </script>

@@ -1,6 +1,10 @@
 <template>
     <v-container>
 
+        <v-overlay z-index="4" color="white" absolute opacity="1" :value="!visible">
+            <v-progress-circular color="primary" indeterminate></v-progress-circular>
+        </v-overlay>
+
         <v-row justify=center>
             <h1 class="mb-5">Webcam</h1>
             <v-progress-circular class="ml-5 mt-2" color="primary" indeterminate v-if="!show_stream && show_progress_circle"></v-progress-circular>
@@ -36,21 +40,25 @@
 
 <script>
   import axios from 'axios'
+  import { EventBus } from "./eventbus.js";
 
   export default {
     name: 'CameraStream',
 
     mounted() {
-        //console.log("");
+        EventBus.$on("now-data", () => {
+            this.visible = true;
+        });
     },
 
     data: function() {
         return {
+            visible: false,
             show_stream: false,
             show_progress_circle: false,
             show_progress_info_text: false,
             show_tooltip: false,
-            camera_url: process.env.VUE_APP_FULL_BACKEND_URL + '/camera-stream'
+            camera_url: process.env.VUE_APP_FULL_BACKEND_URL + '/camera-stream',
         }
     },
     

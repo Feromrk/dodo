@@ -1,5 +1,6 @@
 <template> 
     <div id="wrapper">
+
         <v-overlay z-index="4" color="white" absolute opacity="1" :value="!visible">
             <v-progress-circular color="primary" indeterminate></v-progress-circular>
         </v-overlay>
@@ -97,8 +98,12 @@
                 };
 
             })
-            .catch(error => {
-                console.log(error)
+            .catch(err => {
+                console.log(err);
+
+                EventBus.$emit("backend-error", {
+                    error : err,
+                });
             })
         }
     },

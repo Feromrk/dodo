@@ -5,6 +5,10 @@
             <v-progress-circular color="primary" indeterminate></v-progress-circular>
         </v-overlay>
 
+        <v-overlay z-index="4" color="white" absolute opacity="1" :value="backend_error">
+            <h3 style="color: black">Error: Backend not reachable</h3>
+        </v-overlay>
+
         <v-row justify=center>
             <div  v-if="this.minutes_ago===1">{{minutes_ago}} minute ago</div>
             <div  v-else>{{minutes_ago}} minutes ago</div>
@@ -55,6 +59,7 @@ export default {
     data: function() {
         return {
             visible: false,
+            backend_error: false,
             minutes_ago: -1,
             temp_inside: -1,
             temp_outside: -1,
@@ -88,6 +93,10 @@ export default {
                 this.battery_medium = false
                 this.battery_low = false
             }
+        });
+
+        EventBus.$on("backend-error", () => {
+            this.backend_error = true;
         });
     },
 
