@@ -1,0 +1,13 @@
+*.cdb
+*.hex
+*.lk
+*.map
+*.mem
+*.omf
+*.adb
+*.asm
+*.d
+*.lst
+*.rel
+*.rst
+*.sym
