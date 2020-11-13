@@ -3,42 +3,47 @@
 #include <usb_com.h>
 #include <board.h>
 #include <time.h>
-//#include <stdio.h>
 
-#define LIGHT_ON_TIME_MS (3600 * 1000 * 2.5) // 2.5 hours
-#define LIGHT_SWITCH_PIN 12 //P1_2
+#define LIGHT_ON_TIME_MS 9000000 // 2.5 hours
+#define LIGHT_SWITCH_PIN 12 // P1_2
 
 uint32 start_time = 0;
 
 void light_on()
 {
+    LED_YELLOW(1);
     setDigitalOutput(LIGHT_SWITCH_PIN, HIGH);	
 }
 
 void light_off()
 {
+    LED_YELLOW(0);
     setDigitalOutput(LIGHT_SWITCH_PIN, LOW);	
 }
 
 void sleep_forever()
 {
-    SLEEP = 0x07; // PM3, disable USB, power down other oscillators
-    __asm nop __endasm;
-    __asm nop __endasm;
-    __asm nop __endasm;
-    if (SLEEP & 3)
+    while(1)
     {
-        PCON |= 1;    // PCON.IDLE = 1 : Actually go to sleep.
+        SLEEP = 0x07; // PM3, disable USB, power down other oscillators
+        __asm nop __endasm;
+        __asm nop __endasm;
+        __asm nop __endasm;
+        if (SLEEP & 3)
+        {
+            PCON |= 1;    // PCON.IDLE = 1 : Actually go to sleep.
+        }
+        
+        // normally never reaches this point
+        // retry if sleep failed
+        delayMs(1000);
     }
 }
 
-void loop()
+void main_loop()
 {
-    LED_YELLOW(1);
-    
     if (getMs() - start_time >= LIGHT_ON_TIME_MS)
     {
-        LED_YELLOW(0);
         light_off();
         sleep_forever();
     }
@@ -55,7 +60,7 @@ void main()
     while(1)
     {
         boardService();
-        loop();
+        main_loop();
         usbShowStatusWithGreenLed();
         usbComService();
     }
