@@ -1,6 +1,8 @@
-# dodo
+# dodo (not maintained)
 
-This project is about monitoring my chicken house. I had a raspberry pi 1 and an avenger96 board lying around, so I came up with this idea.
+This project was about monitoring my chicken house. I had a raspberry pi 1 and an avenger96 board lying around, so I came up with this idea.
+
+The frontend is hosted at [https://visitdodo.web.app/](https://visitdodo.web.app/), but does not work completely as the backend is not running anymore.
 
 ## Overview
 - ESP8266 NodeMCU sensor station located in the chicken house (solar powered)
